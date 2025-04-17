@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:desktop_window/desktop_window.dart';
 import 'package:flutter/services.dart';
-import 'package:project_zero/views/home.dart';
-import 'package:project_zero/views/settings.dart';
+import 'package:zero/views/home.dart';
+import 'package:zero/views/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -73,7 +73,7 @@ class _MainAppState extends State<MainApp> {
       home: HomePage(),
       routes: {
         '/home': (context) => const HomePage(),
-       '/settings':
+        '/settings':
             (context) => SettingsPage(
               onThemeChanged: _toggleTheme,
               isDarkMode: _themeMode == ThemeMode.dark,
