@@ -13,18 +13,39 @@ class _HomePageState extends State<HomePage> {
   String _expression = "";
   final List<String> operators = ['+', '-', '*', '/', '%'];
   final List<String> _history = [];
+  final ScrollController _scrollController = ScrollController();
 
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
         _expression = '';
       } else if (value == '=') {
+        if (_expression.isEmpty) {
+          _expression = 'Enter an expression';
+          return;
+        }
+
+        if (!_isBalancedParentheses(_expression)) {
+          _expression = 'Unmatched parentheses';
+          return;
+        }
+
+        final lastChar = _expression[_expression.length - 1];
+        if (operators.contains(lastChar) || lastChar == '(') {
+          _expression = 'Incomplete expression';
+          return;
+        }
+
         try {
           String result = _evaluate(_expression);
           _history.add("$_expression = $result");
           _expression = result;
+        } on FormatException {
+          _expression = 'Invalid number format';
+        } on UnsupportedError {
+          _expression = 'Cannot divide by zero';
         } catch (e) {
-          _expression = 'Error';
+          _expression = 'Calculation error';
         }
       } else if (value == '+/-') {
         _toggleSign();
@@ -33,27 +54,57 @@ class _HomePageState extends State<HomePage> {
       } else {
         _appendToExpression(value);
       }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+        );
+      });
     });
   }
 
   void _appendToExpression(String value) {
+    if (value.isEmpty) return;
+
     final lastChar =
         _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
 
     if (operators.contains(value)) {
-      if (_expression.isEmpty) return;
-      if (operators.contains(lastChar)) {
-        _expression = _expression.substring(0, _expression.length - 1) + value;
+      if (_expression.isEmpty ||
+          operators.contains(lastChar) ||
+          lastChar == '(') {
         return;
       }
+      if (operators.contains(lastChar)) {
+        _expression = _expression.substring(0, _expression.length - 1);
+      }
+      _expression += value;
+      return;
     }
 
     if (value == '.') {
       if (_expression.isEmpty ||
-          lastChar == '.' ||
           operators.contains(lastChar) ||
-          lastChar == '(')
+          lastChar == '(') {
         return;
+      }
+      final number = _expression.split(RegExp(r'[\+\-\*/\%\(\)]')).last;
+      if (number.contains('.')) return;
+      _expression += value;
+      return;
+    }
+
+    if (value == ')') {
+      int open = '('.allMatches(_expression).length;
+      int close = ')'.allMatches(_expression).length;
+      if (close >= open) return;
+      if (_expression.isEmpty ||
+          operators.contains(lastChar) ||
+          lastChar == '(') {
+        return;
+      }
     }
 
     _expression += value;
@@ -67,27 +118,44 @@ class _HomePageState extends State<HomePage> {
       ContextModel cm = ContextModel();
       double result = exp.evaluate(EvaluationType.REAL, cm);
       _expression = _formatResult(-result);
-    } catch (e) {
-      _expression = 'Error';
+    } catch (_) {
+      _expression = 'Invalid toggle';
     }
   }
 
   void _insertParenthesis() {
     int openCount = '('.allMatches(_expression).length;
     int closeCount = ')'.allMatches(_expression).length;
-    if (openCount == closeCount || _expression.endsWith('(')) {
+    String lastChar =
+        _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
+
+    if (_expression.isEmpty ||
+        operators.contains(lastChar) ||
+        lastChar == '(') {
       _expression += '(';
-    } else {
+    } else if (openCount > closeCount &&
+        RegExp(r'[0-9)]$').hasMatch(lastChar)) {
       _expression += ')';
     }
   }
 
   String _evaluate(String expr) {
     expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
+
+    // Check for direct division by zero
+    if (RegExp(r'/\s*0(?!\d)').hasMatch(expr)) {
+      throw UnsupportedError('Division by zero is not supported');
+    }
+
     ShuntingYardParser p = ShuntingYardParser();
     Expression exp = p.parse(expr);
     ContextModel cm = ContextModel();
     double result = exp.evaluate(EvaluationType.REAL, cm);
+
+    if (result.isInfinite || result.isNaN) {
+      throw FormatException("Invalid result");
+    }
+
     return _formatResult(result);
   }
 
@@ -96,6 +164,24 @@ class _HomePageState extends State<HomePage> {
       return result.toInt().toString();
     }
     return result.toString();
+  }
+
+  void _deleteLastCharacter() {
+    if (_expression.isNotEmpty) {
+      setState(() {
+        _expression = _expression.substring(0, _expression.length - 1);
+      });
+    }
+  }
+
+  bool _isBalancedParentheses(String expr) {
+    int balance = 0;
+    for (var char in expr.split('')) {
+      if (char == '(') balance++;
+      if (char == ')') balance--;
+      if (balance < 0) return false;
+    }
+    return balance == 0;
   }
 
   Widget _buildButton(String label, bool isDark) {
@@ -109,13 +195,16 @@ class _HomePageState extends State<HomePage> {
           style: FilledButton.styleFrom(
             backgroundColor:
                 isOperator
-                    ? const Color.fromARGB(255, 0, 49, 52)
+                    ? const Color.fromARGB(255, 0, 40, 43)
                     : const Color.fromRGBO(0, 107, 113, 1),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 36),
+            padding: const EdgeInsets.symmetric(vertical: 28),
           ),
           onPressed: () => _onButtonPressed(label),
-          child: Text(label, style: const TextStyle(fontSize: 20)),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
     );
@@ -159,7 +248,6 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -168,36 +256,98 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(10),
+      body: SafeArea(
         child: Column(
           children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                alignment: Alignment.bottomRight,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  reverse: true,
-                  child: Text(
-                    _expression,
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
+            Container(
+              height: 100,
+              alignment: Alignment.bottomRight,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Stack(
+                children: [
+                  Scrollbar(
+                    controller: _scrollController,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: Align(
+                        alignment:
+                            Alignment
+                                .centerRight, // This aligns the text to the right side
+                        child: Text(
+                          _expression,
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w400,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.visible,
+                          softWrap: false,
+                        ),
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.visible,
-                    softWrap: false,
                   ),
-                ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IgnorePointer(
+                      child: Container(
+                        width: 20,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerRight,
+                            end: Alignment.centerLeft,
+                            colors: [
+                              Theme.of(context).scaffoldBackgroundColor,
+                              Theme.of(
+                                context,
+                              ).scaffoldBackgroundColor.withAlpha(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            ...buttons.map(
-              (row) => Row(
-                children:
-                    row.map((label) => _buildButton(label, isDark)).toList(),
+            const SizedBox(height: 10),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 20,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Backspace Button Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.backspace),
+                          iconSize: 28,
+                          tooltip: 'Delete',
+                          onPressed: _deleteLastCharacter,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Calculator Buttons
+                    ...buttons.map((row) {
+                      return Row(
+                        children:
+                            row
+                                .map((label) => _buildButton(label, isDark))
+                                .toList(),
+                      );
+                    }),
+                  ],
+                ),
               ),
             ),
           ],
