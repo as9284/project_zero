@@ -255,6 +255,7 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ],
+        actionsPadding: EdgeInsets.only(right: 16),
       ),
       body: SafeArea(
         child: Column(
