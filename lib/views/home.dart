@@ -142,7 +142,6 @@ class _HomePageState extends State<HomePage> {
   String _evaluate(String expr) {
     expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
 
-    // Check for direct division by zero
     if (RegExp(r'/\s*0(?!\d)').hasMatch(expr)) {
       throw UnsupportedError('Division by zero is not supported');
     }
@@ -274,9 +273,7 @@ class _HomePageState extends State<HomePage> {
                       controller: _scrollController,
                       scrollDirection: Axis.horizontal,
                       child: Align(
-                        alignment:
-                            Alignment
-                                .centerRight, // This aligns the text to the right side
+                        alignment: Alignment.centerRight,
                         child: Text(
                           _expression,
                           style: TextStyle(
