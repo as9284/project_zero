@@ -291,7 +291,7 @@ class _HomePageState extends State<HomePage> {
                         child: Text(
                           _expression,
                           style: TextStyle(
-                            fontSize: 44,
+                            fontSize: 50,
                             fontWeight: FontWeight.w400,
                             color: isDark ? Colors.white : Colors.black,
                           ),
