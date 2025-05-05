@@ -24,6 +24,7 @@ class HistoryPage extends StatelessWidget {
             },
           ),
         ],
+        actionsPadding: const EdgeInsets.only(right: 16),
       ),
       body:
           history.isEmpty
