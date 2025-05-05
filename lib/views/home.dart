@@ -10,7 +10,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _expression = "";
+  String _expression = "0";
   final List<String> operators = ['+', '-', '*', '/', '%'];
   final List<String> _history = [];
   final ScrollController _scrollController = ScrollController();
@@ -18,9 +18,9 @@ class _HomePageState extends State<HomePage> {
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
-        _expression = '';
+        _expression = '0';
       } else if (value == '=') {
-        if (_expression.isEmpty) {
+        if (_expression == '0') {
           _expression = 'Enter an expression';
           return;
         }
@@ -68,6 +68,11 @@ class _HomePageState extends State<HomePage> {
   void _appendToExpression(String value) {
     if (value.isEmpty) return;
 
+    if (_expression == "0" && !operators.contains(value) && value != '.') {
+      _expression = value;
+      return;
+    }
+
     final lastChar =
         _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
 
@@ -111,7 +116,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _toggleSign() {
-    if (_expression.isEmpty) return;
+    if (_expression == '0') return;
     try {
       ShuntingYardParser p = ShuntingYardParser();
       Expression exp = p.parse(_expression);
@@ -124,6 +129,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _insertParenthesis() {
+    if (_expression == '0') {
+      _expression = '(';
+      return;
+    }
+
     int openCount = '('.allMatches(_expression).length;
     int closeCount = ')'.allMatches(_expression).length;
     String lastChar =
@@ -168,7 +178,11 @@ class _HomePageState extends State<HomePage> {
   void _deleteLastCharacter() {
     if (_expression.isNotEmpty) {
       setState(() {
-        _expression = _expression.substring(0, _expression.length - 1);
+        if (_expression.length == 1) {
+          _expression = '0';
+        } else {
+          _expression = _expression.substring(0, _expression.length - 1);
+        }
       });
     }
   }
@@ -277,7 +291,7 @@ class _HomePageState extends State<HomePage> {
                         child: Text(
                           _expression,
                           style: TextStyle(
-                            fontSize: 36,
+                            fontSize: 44,
                             fontWeight: FontWeight.w400,
                             color: isDark ? Colors.white : Colors.black,
                           ),
