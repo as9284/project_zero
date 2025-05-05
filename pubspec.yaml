@@ -1,7 +1,7 @@
 name: zero
 description: "Minimalistic calculator app"
 publish_to: "none"
-version: 1.0.0
+version: 1.0.1
 
 environment:
   sdk: ^3.7.2
@@ -30,5 +30,5 @@ msix_config:
   display_name: Zero
   publisher_display_name: AS
   identity_name: com.as.project-zero
-  msix_version: 1.0.0.0
+  msix_version: 1.0.1.0
   logo_path: windows/runner/resources/app_icon.ico

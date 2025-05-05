@@ -203,7 +203,7 @@ class _HomePageState extends State<HomePage> {
           onPressed: () => _onButtonPressed(label),
           child: Text(
             label,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
           ),
         ),
       ),
