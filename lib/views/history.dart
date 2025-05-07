@@ -1,4 +1,3 @@
-// history_page.dart
 import 'package:flutter/material.dart';
 
 class HistoryPage extends StatelessWidget {
@@ -32,8 +31,16 @@ class HistoryPage extends StatelessWidget {
               : ListView.builder(
                 itemCount: history.length,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(history[index], style: TextStyle(fontSize: 20)),
+                  return Column(
+                    children: [
+                      ListTile(
+                        title: Text(
+                          history[index],
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                      Divider(),
+                    ],
                   );
                 },
               ),
