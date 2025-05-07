@@ -286,7 +286,7 @@ class _HomePageState extends State<HomePage> {
             Container(
               height: 100,
               alignment: Alignment.bottomRight,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               child: Stack(
                 children: [
                   Scrollbar(
