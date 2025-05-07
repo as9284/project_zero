@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 import 'package:zero/views/history.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,6 +11,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String _rawExpression = "0";
   String _expression = "0";
   final List<String> operators = ['+', '-', '*', '/', '%'];
   final List<String> _history = [];
@@ -18,27 +20,29 @@ class _HomePageState extends State<HomePage> {
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
+        _rawExpression = '0';
         _expression = '0';
       } else if (value == '=') {
-        if (_expression == '0') {
+        if (_rawExpression == '0') {
           _expression = 'Enter an expression';
           return;
         }
 
-        if (!_isBalancedParentheses(_expression)) {
+        if (!_isBalancedParentheses(_rawExpression)) {
           _expression = 'Unmatched parentheses';
           return;
         }
 
-        final lastChar = _expression[_expression.length - 1];
+        final lastChar = _rawExpression[_rawExpression.length - 1];
         if (operators.contains(lastChar) || lastChar == '(') {
           _expression = 'Incomplete expression';
           return;
         }
 
         try {
-          String result = _evaluate(_expression);
+          String result = _evaluate(_rawExpression);
           _history.add("$_expression = $result");
+          _rawExpression = result.replaceAll(',', ''); // update raw
           _expression = result;
         } on FormatException {
           _expression = 'Invalid number format';
@@ -68,60 +72,68 @@ class _HomePageState extends State<HomePage> {
   void _appendToExpression(String value) {
     if (value.isEmpty) return;
 
-    if (_expression == "0" && !operators.contains(value) && value != '.') {
+    if (_rawExpression == "0" && !operators.contains(value) && value != '.') {
+      _rawExpression = value;
       _expression = value;
       return;
     }
 
     final lastChar =
-        _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
+        _rawExpression.isNotEmpty
+            ? _rawExpression[_rawExpression.length - 1]
+            : '';
 
     if (operators.contains(value)) {
-      if (_expression.isEmpty ||
+      if (_rawExpression.isEmpty ||
           operators.contains(lastChar) ||
           lastChar == '(') {
         return;
       }
       if (operators.contains(lastChar)) {
-        _expression = _expression.substring(0, _expression.length - 1);
+        _rawExpression = _rawExpression.substring(0, _rawExpression.length - 1);
       }
-      _expression += value;
+      _rawExpression += value;
+      _expression = _rawExpression;
       return;
     }
 
     if (value == '.') {
-      if (_expression.isEmpty ||
+      if (_rawExpression.isEmpty ||
           operators.contains(lastChar) ||
           lastChar == '(') {
         return;
       }
-      final number = _expression.split(RegExp(r'[\+\-\*/\%\(\)]')).last;
+      final number = _rawExpression.split(RegExp(r'[\+\-\*/\%\(\)]')).last;
       if (number.contains('.')) return;
-      _expression += value;
+      _rawExpression += value;
+      _expression = _rawExpression;
       return;
     }
 
     if (value == ')') {
-      int open = '('.allMatches(_expression).length;
-      int close = ')'.allMatches(_expression).length;
+      int open = '('.allMatches(_rawExpression).length;
+      int close = ')'.allMatches(_rawExpression).length;
       if (close >= open) return;
-      if (_expression.isEmpty ||
+      if (_rawExpression.isEmpty ||
           operators.contains(lastChar) ||
           lastChar == '(') {
         return;
       }
     }
 
-    _expression += value;
+    _rawExpression += value;
+    _expression = _rawExpression;
   }
 
   void _toggleSign() {
-    if (_expression == '0') return;
+    if (_rawExpression == '0') return;
     try {
+      final raw = _rawExpression.replaceAll(',', '');
       ShuntingYardParser p = ShuntingYardParser();
-      Expression exp = p.parse(_expression);
+      Expression exp = p.parse(raw);
       ContextModel cm = ContextModel();
       double result = exp.evaluate(EvaluationType.REAL, cm);
+      _rawExpression = (-result).toString();
       _expression = _formatResult(-result);
     } catch (_) {
       _expression = 'Invalid toggle';
@@ -129,24 +141,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _insertParenthesis() {
-    if (_expression == '0') {
-      _expression = '(';
-      return;
-    }
-
-    int openCount = '('.allMatches(_expression).length;
-    int closeCount = ')'.allMatches(_expression).length;
     String lastChar =
-        _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
+        _rawExpression.isNotEmpty
+            ? _rawExpression[_rawExpression.length - 1]
+            : '';
 
-    if (_expression.isEmpty ||
+    int openCount = '('.allMatches(_rawExpression).length;
+    int closeCount = ')'.allMatches(_rawExpression).length;
+
+    if (_rawExpression == '0') {
+      _rawExpression = '(';
+    } else if (_rawExpression.isEmpty ||
         operators.contains(lastChar) ||
         lastChar == '(') {
-      _expression += '(';
+      _rawExpression += '(';
     } else if (openCount > closeCount &&
         RegExp(r'[0-9)]$').hasMatch(lastChar)) {
-      _expression += ')';
+      _rawExpression += ')';
     }
+    _expression = _rawExpression;
   }
 
   String _evaluate(String expr) {
@@ -169,22 +182,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   String _formatResult(double result) {
-    if (result == result.toInt()) {
-      return result.toInt().toString();
-    }
-    return result.toString();
+    final formatter = NumberFormat("#,##0.##########");
+    return formatter.format(result);
   }
 
   void _deleteLastCharacter() {
-    if (_expression.isNotEmpty) {
-      setState(() {
-        if (_expression.length == 1) {
-          _expression = '0';
-        } else {
-          _expression = _expression.substring(0, _expression.length - 1);
-        }
-      });
-    }
+    setState(() {
+      if (_rawExpression.length <= 1) {
+        _rawExpression = '0';
+      } else {
+        _rawExpression = _rawExpression.substring(0, _rawExpression.length - 1);
+      }
+      _expression = _rawExpression;
+    });
   }
 
   bool _isBalancedParentheses(String expr) {
@@ -268,7 +278,7 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ],
-        actionsPadding: EdgeInsets.only(right: 16),
+        actionsPadding: const EdgeInsets.only(right: 16),
       ),
       body: SafeArea(
         child: Column(
@@ -325,7 +335,6 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 10),
             Expanded(
               child: Padding(
@@ -336,7 +345,6 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Backspace Button Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -349,7 +357,6 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    // Calculator Buttons
                     ...buttons.map((row) {
                       return Row(
                         children:
