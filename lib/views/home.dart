@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
         try {
           String result = _evaluate(_rawExpression);
           _history.add("$_expression = $result");
-          _rawExpression = result.replaceAll(',', ''); // update raw
+          _rawExpression = result.replaceAll(',', '');
           _expression = result;
         } on FormatException {
           _expression = 'Invalid number format';
@@ -219,14 +219,24 @@ class _HomePageState extends State<HomePage> {
             backgroundColor:
                 isOperator
                     ? const Color.fromARGB(255, 0, 40, 43)
-                    : const Color.fromRGBO(0, 107, 113, 1),
+                    : const Color.fromARGB(255, 0, 130, 136),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 28),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(50),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            side: BorderSide(
+              color:
+                  isOperator
+                      ? const Color.fromARGB(255, 0, 59, 63)
+                      : const Color.fromARGB(255, 0, 156, 164),
+              width: 2,
+            ),
           ),
           onPressed: () => _onButtonPressed(label),
           child: Text(
             label,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
           ),
         ),
       ),
@@ -292,26 +302,25 @@ class _HomePageState extends State<HomePage> {
                   Scrollbar(
                     controller: _scrollController,
                     thumbVisibility: true,
-                    trackVisibility: true,
                     child: SingleChildScrollView(
                       controller: _scrollController,
                       scrollDirection: Axis.horizontal,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          _expression,
-                          style: TextStyle(
-                            fontSize: 50,
-                            fontWeight: FontWeight.w400,
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.visible,
-                          softWrap: false,
+                      reverse: false,
+                      child: Text(
+                        _expression,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.w400,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
                       ),
                     ),
                   ),
+
                   Align(
                     alignment: Alignment.centerRight,
                     child: IgnorePointer(
@@ -356,7 +365,10 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 10, right: 10),
+                      child: Divider(),
+                    ),
                     ...buttons.map((row) {
                       return Row(
                         children:
